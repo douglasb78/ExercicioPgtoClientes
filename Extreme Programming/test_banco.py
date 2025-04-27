@@ -37,6 +37,15 @@ def test_gerar_resumo_pivotado():
     # Compara os dois DataFrames
     pd.testing.assert_frame_equal(resultado, esperado)
 
+def test_gerar_resumo_pivotado_faltando_coluna():
+    df = pd.DataFrame({
+        'data_pagamento': ['2024-04-01'],
+        'valor': [100]
+        # falta o hasbeenpaid
+    })
+    with pytest.raises(KeyError):
+        gerar_resumo_pivotado(df)
+
 def test_gerar_resumo_por_cliente():
     df_pagamentos = pd.DataFrame({
         'id_cliente': [1, 2, 1, 3],
@@ -67,5 +76,3 @@ def test_gerar_resumo_por_cliente():
         resultado.sort_values('apelido').reset_index(drop=True),
         esperado.sort_values('apelido').reset_index(drop=True)
     )
-
-
