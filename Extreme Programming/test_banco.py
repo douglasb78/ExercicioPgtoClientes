@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
-from unittest.mock import patch, MagicMock, mock_open
-from banco import gerar_excel_completo, gerar_resumo_pivotado, gerar_resumo_por_cliente
+from unittest import mock
+from banco import gerar_resumo_pivotado, gerar_resumo_por_cliente
 from dotenv import load_dotenv
 from sqlalchemy import create_engine,text
 import os
@@ -76,3 +76,28 @@ def test_gerar_resumo_por_cliente():
         resultado.sort_values('apelido').reset_index(drop=True),
         esperado.sort_values('apelido').reset_index(drop=True)
     )
+
+@mock.patch('banco.create_engine')
+@mock.patch('banco.pd.read_sql_table')
+@mock.patch('banco.pd.ExcelWriter')
+def test_gerar_excel_completo(mock_excel_writer, mock_read_sql_table, mock_create_engine):
+    mock_engine = mock.Mock()
+    mock_create_engine.return_value = mock_engine
+
+    mock_read_sql_table.side_effect = [
+        pd.DataFrame({'id': [1], 'apelido': ['Cliente A']}),  # df_clientes
+        pd.DataFrame({'id_cliente': [1], 'hasbeenpaid': [True], 'valor': [100], 'data_pagamento': ['2025-01-01']})  # df_pagamentos
+    ]
+
+    mock_writer_instance = mock.Mock()
+    mock_excel_writer.return_value.__enter__.return_value = mock_writer_instance
+
+    # Mock to_excel dos DataFrames para não tentar salvar de verdade
+    with mock.patch('pandas.DataFrame.to_excel') as mock_to_excel:
+        from banco import gerar_excel_completo
+        gerar_excel_completo()
+
+        assert mock_create_engine.called
+        assert mock_read_sql_table.call_count == 2
+        assert mock_excel_writer.called
+        assert mock_to_excel.call_count == 2  # duas planilhas
